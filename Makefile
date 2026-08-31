@@ -66,3 +66,32 @@ deps:
 coverage:
 	$(GO) test -coverprofile=coverage.out ./...
 	$(GO) tool cover -html=coverage.out
+	
+.PHONY: test-integration test-race test-idempotency test-all
+
+test-integration:
+	$(GO) test -race -v ./test/integration/...
+
+test-race:
+	$(GO) test -race -v -run TestRaceCondition ./test/integration/...
+
+test-idempotency:
+	$(GO) test -race -v -run TestIdempotency ./test/integration/...
+
+test-webhook-before:
+	$(GO) test -race -v -run TestWebhookBeforeOrder ./test/integration/...
+
+test-all:
+	$(GO) test -race -v ./...
+
+supplier-build:
+	docker-compose build supplier-a supplier-b
+
+supplier-up:
+	docker-compose up -d supplier-a supplier-b
+
+supplier-down:
+	docker-compose stop supplier-a supplier-b
+
+supplier-logs:
+	docker-compose logs -f supplier-a supplier-b

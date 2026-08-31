@@ -12,7 +12,7 @@ services:
       - "${DB_PORT}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./migrations:/docker-entrypoint-initdb.d  # автоматический запуск миграций при первом старте
+      - ./migrations:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
       interval: 5s
@@ -20,16 +20,48 @@ services:
       retries: 5
     restart: unless-stopped
 
-  app:
+  supplier-a:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: supplier/mock/Dockerfile
+    container_name: supplier_a
+    ports:
+      - "8081:8081"
+    environment:
+      - PORT=8081
+      - FAIL_RATE=0.3
+      - TIMEOUT_RATE=0.2
+      - TIMEOUT_DURATION=5s
+      - SUPPLIER_ID=A
+    restart: unless-stopped
+
+  supplier-b:
+    build:
+      context: .
+      dockerfile: supplier/mock/Dockerfile
+    container_name: supplier_b
+    ports:
+      - "8082:8082"
+    environment:
+      - PORT=8082
+      - FAIL_RATE=0.4
+      - TIMEOUT_RATE=0.1
+      - TIMEOUT_DURATION=5s
+      - SUPPLIER_ID=B
+    restart: unless-stopped
+
+  app:
+    build: .
     container_name: order_app
     ports:
       - "${PORT}:${PORT}"
     depends_on:
       postgres:
         condition: service_healthy
+      supplier-a:
+        condition: service_started
+      supplier-b:
+        condition: service_started
     environment:
       DB_HOST: postgres
       DB_PORT: ${DB_PORT}
@@ -38,40 +70,15 @@ services:
       DB_NAME: ${DB_NAME}
       DB_SSLMODE: ${DB_SSLMODE}
       PORT: ${PORT}
-      SUPPLIER_A_URL: ${SUPPLIER_A_URL}
-      SUPPLIER_B_URL: ${SUPPLIER_B_URL}
-      SUPPLIER_TIMEOUT: ${SUPPLIER_TIMEOUT}
-      SUPPLIER_RETRY_MAX: ${SUPPLIER_RETRY_MAX}
-      SUPPLIER_RETRY_BACKOFF: ${SUPPLIER_RETRY_BACKOFF}
+      SUPPLIER_A_URL: http://supplier-a:8081
+      SUPPLIER_B_URL: http://supplier-b:8082
+      SUPPLIER_TIMEOUT: 3s
+      SUPPLIER_RETRY_MAX: 3
+      SUPPLIER_RETRY_BACKOFF: 1s
       LOG_LEVEL: ${LOG_LEVEL}
     volumes:
       - ./.env:/root/.env
     restart: unless-stopped
-
-  # Заглушки поставщиков для этапа 3 (пока закомментируем, добавим позже)
-  # supplier-a:
-  #   build: ./suppliers/mock
-  #   container_name: supplier_a
-  #   ports:
-  #     - "8081:8081"
-  #   environment:
-  #     - PORT=8081
-  #     - FAIL_RATE=0.3
-  #     - TIMEOUT_RATE=0.2
-  #     - SUPPLIER_ID=A
-  #   restart: unless-stopped
-
-  # supplier-b:
-  #   build: ./suppliers/mock
-  #   container_name: supplier_b
-  #   ports:
-  #     - "8082:8082"
-  #   environment:
-  #     - PORT=8082
-  #     - FAIL_RATE=0.4
-  #     - TIMEOUT_RATE=0.1
-  #     - SUPPLIER_ID=B
-  #   restart: unless-stopped
 
 volumes:
   postgres_data:
