@@ -96,12 +96,6 @@ func (s *ReconciliationService) RecoverStuckOrders() error {
 			continue
 		}
 
-		order, err := s.orderRepo.GetOrderByID(orderID)
-		if err != nil {
-			log.Printf("Failed to get order %s: %v", orderID, err)
-			continue
-		}
-
 		code, _ := s.codeRepo.GetIssuedCodeByOrderID(orderID)
 		if code != "" {
 			log.Printf("Order %s already has code, updating status to delivered", orderID)

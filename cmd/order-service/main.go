@@ -29,7 +29,7 @@ func main() {
 	}
 	log.Println("Database connected successfully")
 
-	supplierClient := supplier.NewClient("", 0)
+	supplierClient := supplier.NewClient(cfg.Supplier.SupplierAURL, cfg.Supplier.Timeout)
 
 	orderRepo := repository.NewOrderRepository(db)
 	webhookRepo := repository.NewWebhookRepository(db)

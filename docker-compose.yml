@@ -1,20 +1,18 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:15-alpine
     container_name: order_db
     environment:
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-orders}
     ports:
-      - "${DB_PORT}:5432"
+      - "${DB_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./migrations:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -51,10 +49,12 @@ services:
     restart: unless-stopped
 
   app:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: order_app
     ports:
-      - "${PORT}:${PORT}"
+      - "${PORT:-8080}:${PORT:-8080}"
     depends_on:
       postgres:
         condition: service_healthy
@@ -64,18 +64,18 @@ services:
         condition: service_started
     environment:
       DB_HOST: postgres
-      DB_PORT: ${DB_PORT}
-      DB_USER: ${DB_USER}
-      DB_PASSWORD: ${DB_PASSWORD}
-      DB_NAME: ${DB_NAME}
-      DB_SSLMODE: ${DB_SSLMODE}
-      PORT: ${PORT}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_NAME: ${DB_NAME:-orders}
+      DB_SSLMODE: ${DB_SSLMODE:-disable}
+      PORT: ${PORT:-8080}
       SUPPLIER_A_URL: http://supplier-a:8081
       SUPPLIER_B_URL: http://supplier-b:8082
-      SUPPLIER_TIMEOUT: 3s
-      SUPPLIER_RETRY_MAX: 3
-      SUPPLIER_RETRY_BACKOFF: 1s
-      LOG_LEVEL: ${LOG_LEVEL}
+      SUPPLIER_TIMEOUT: ${SUPPLIER_TIMEOUT:-3s}
+      SUPPLIER_RETRY_MAX: ${SUPPLIER_RETRY_MAX:-3}
+      SUPPLIER_RETRY_BACKOFF: ${SUPPLIER_RETRY_BACKOFF:-1s}
+      LOG_LEVEL: ${LOG_LEVEL:-debug}
     volumes:
       - ./.env:/root/.env
     restart: unless-stopped

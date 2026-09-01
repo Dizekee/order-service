@@ -11,6 +11,7 @@ import (
 	"github.com/Dizekee/order-service/internal/config"
 	"github.com/Dizekee/order-service/internal/models"
 	"github.com/Dizekee/order-service/internal/repository"
+	"github.com/Dizekee/order-service/internal/supplier"
 
 	"github.com/google/uuid"
 )
